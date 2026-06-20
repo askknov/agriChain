@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
+import toast from "react-hot-toast";
 import {
   FARMER_REGISTRY_ABI,
   CROP_REGISTRY_ABI,
@@ -83,23 +84,36 @@ export function Web3Provider({ children }) {
       setIsConnecting(true);
       const demoAccount = DEMO_ACCOUNTS[accountIndex] || DEMO_ACCOUNTS[0];
 
+      // Try to connect to local Hardhat node
       const jsonProvider = new ethers.JsonRpcProvider(HARDHAT_RPC);
-      const wallet = new ethers.Wallet(demoAccount.key, jsonProvider);
-
-      setProvider(jsonProvider);
-      setSigner(wallet);
-      setAccount(demoAccount.address.toLowerCase());
-      setChainId(31337);
-      setIsDemoMode(true);
-      setDemoAccountIndex(accountIndex);
-      initContracts(wallet);
-
-      console.log(`Demo mode: Connected as ${demoAccount.label}`);
+      
+      try {
+        // Quick check if node is alive
+        await jsonProvider.getNetwork();
+        
+        const wallet = new ethers.Wallet(demoAccount.key, jsonProvider);
+        setProvider(jsonProvider);
+        setSigner(wallet);
+        setAccount(demoAccount.address.toLowerCase());
+        setChainId(31337);
+        setIsDemoMode(true);
+        setDemoAccountIndex(accountIndex);
+        initContracts(wallet);
+        console.log(`Demo mode: Connected to Hardhat as ${demoAccount.label}`);
+      } catch (e) {
+        // Fallback for cloud/phone access where localhost:8545 doesn't exist
+        console.log("Local blockchain not found. Starting Cloud Offline Demo Mode.");
+        setProvider(null);
+        setSigner(null);
+        setAccount(demoAccount.address.toLowerCase());
+        setChainId(null);
+        setIsDemoMode(true);
+        setDemoAccountIndex(accountIndex);
+        setContracts({}); // Empty contracts triggers the fallback logic in components
+        toast?.success("Connected in Cloud Demo Mode (Blockchain Skipped)");
+      }
     } catch (error) {
       console.error("Demo connect failed:", error);
-      alert(
-        "Could not connect to local blockchain. Make sure Hardhat node is running:\n\ncd blockchain && npx hardhat node"
-      );
     } finally {
       setIsConnecting(false);
     }
