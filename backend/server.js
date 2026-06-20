@@ -9,6 +9,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const connectDB = require("./config/db");
 const { initBlockchain } = require("./services/blockchainService");
 
@@ -71,6 +72,15 @@ app.get("/api/dashboard/stats", async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// ── Serve Frontend (production build) ───────────────────────
+const frontendBuildPath = path.join(__dirname, "..", "frontend", "dist");
+app.use(express.static(frontendBuildPath));
+
+// Catch-all: serve React app for any non-API route (supports React Router)
+app.get("{*path}", (req, res) => {
+  res.sendFile(path.join(frontendBuildPath, "index.html"));
 });
 
 // ── Start Server ────────────────────────────────────────────
