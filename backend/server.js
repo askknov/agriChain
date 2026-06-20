@@ -74,14 +74,6 @@ app.get("/api/dashboard/stats", async (req, res) => {
   }
 });
 
-// ── Serve Frontend (production build) ───────────────────────
-const frontendBuildPath = path.join(__dirname, "..", "frontend", "dist");
-app.use(express.static(frontendBuildPath));
-
-// Catch-all: serve React app for any non-API route (supports React Router)
-app.get("{*path}", (req, res) => {
-  res.sendFile(path.join(frontendBuildPath, "index.html"));
-});
 
 // ── Start Server ────────────────────────────────────────────
 app.listen(PORT, () => {
