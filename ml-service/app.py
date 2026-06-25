@@ -18,6 +18,15 @@ from yield_prediction import predict_yield
 from price_prediction import predict_market_price
 from recommendations import generate_recommendations
 
+# Import HuggingFace models (friend's trained models)
+try:
+    from hf_models import classify_leaf_image, predict_risk_hf, predict_yield_hf, predict_price_hf
+    HF_MODELS_AVAILABLE = True
+    print("  [HF] HuggingFace model integration available")
+except ImportError as e:
+    HF_MODELS_AVAILABLE = False
+    print(f"  [HF] HuggingFace models not available: {e}")
+
 app = Flask(__name__)
 CORS(app)
 
@@ -280,6 +289,56 @@ def predict_price_only():
         result = predict_market_price(crop_type=data.get("cropType", "Wheat"))
         return jsonify({"success": True, "data": result})
     except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/predict/image", methods=["POST"])
+def predict_from_image():
+    """
+    Scan a crop leaf image for disease using the TFLite model from HuggingFace.
+    Accepts: multipart form with 'image' file field (JPG/PNG).
+    Returns: disease name, confidence, health score, recommendations.
+    """
+    try:
+        if not HF_MODELS_AVAILABLE:
+            return jsonify({
+                "success": False,
+                "error": "HuggingFace models not available. Install tensorflow-cpu."
+            }), 503
+
+        image_file = request.files.get("image")
+        if not image_file:
+            return jsonify({"success": False, "error": "No image file provided"}), 400
+
+        image_bytes = image_file.read()
+        if len(image_bytes) == 0:
+            return jsonify({"success": False, "error": "Empty image file"}), 400
+
+        # Run TFLite classification
+        result = classify_leaf_image(image_bytes)
+
+        # Also run disease risk model using detected health score
+        temperature = float(request.form.get("temperature", 28))
+        humidity = float(request.form.get("humidity", 70))
+        rainfall = float(request.form.get("rainfall", 100))
+
+        risk_result = predict_risk_hf(
+            health_score=result["health_score"],
+            temperature=temperature,
+            humidity=humidity,
+            rainfall=rainfall,
+        )
+
+        result["disease_risk"] = risk_result
+
+        return jsonify({
+            "success": True,
+            "data": result,
+            "analyzedAt": datetime.now().isoformat(),
+        })
+
+    except Exception as e:
+        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
 
 

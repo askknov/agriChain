@@ -1,6 +1,9 @@
 flask==3.1.*
 flask-cors==5.*
 numpy==2.*
-scikit-learn==1.*
+scikit-learn==1.6.1
 Pillow==11.*
 requests==2.*
+tensorflow-cpu
+joblib
+pandas

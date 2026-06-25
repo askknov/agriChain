@@ -8,6 +8,7 @@ import CropManagement from "./pages/CropManagement";
 import MLPredictions from "./pages/MLPredictions";
 import SupplyChainTracker from "./pages/SupplyChainTracker";
 import Admin from "./pages/Admin";
+import CropScanner from "./pages/CropScanner";
 import "./index.css";
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
               <Route path="/predictions" element={<MLPredictions />} />
               <Route path="/supply-chain" element={<SupplyChainTracker />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/scanner" element={<CropScanner />} />
             </Routes>
           </main>
           <Toaster

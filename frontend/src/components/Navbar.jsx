@@ -6,6 +6,7 @@ import {
   HiOutlineUserAdd,
   HiOutlineViewGrid,
   HiOutlineChartBar,
+  HiOutlineCamera,
   HiOutlineTruck,
   HiOutlineCog,
 } from "react-icons/hi";
@@ -15,6 +16,7 @@ const navLinks = [
   { path: "/register", label: "Register", icon: HiOutlineUserAdd },
   { path: "/crops", label: "Crops", icon: HiOutlineViewGrid },
   { path: "/predictions", label: "ML Predictions", icon: HiOutlineChartBar },
+  { path: "/scanner", label: "Crop Scanner", icon: HiOutlineCamera },
   { path: "/supply-chain", label: "Supply Chain", icon: HiOutlineTruck },
   { path: "/admin", label: "Admin", icon: HiOutlineCog },
 ];

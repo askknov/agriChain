@@ -1,11 +1,24 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
 const Prediction = require("../models/Prediction");
 const Crop = require("../models/Crop");
 const { analyzeCrop, analyzeSingle } = require("../services/mlService");
 const { storePredictionOnChain } = require("../services/blockchainService");
 const { ethers } = require("ethers");
 
+// Multer config for image uploads (store in memory)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"), false);
+    }
+  },
+});
 // Prediction type name → on-chain enum index
 const PRED_TYPE_INDEX = {
   CropHealth: 0,
@@ -131,6 +144,67 @@ router.post("/verify/:id", async (req, res) => {
       computedHash: computedHash,
     });
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/predictions/scan-image — Scan a crop leaf image for disease
+router.post("/scan-image", upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "No image file provided" });
+    }
+
+    const ML_BASE = (process.env.ML_API_URL || "http://localhost:8000/api/predict").replace("/api/predict", "");
+
+    // Build multipart form to send to ML service
+    const FormData = (await import("form-data")).default;
+    const formData = new FormData();
+    formData.append("image", req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
+
+    // Add optional weather params from request body
+    if (req.body.temperature) formData.append("temperature", req.body.temperature);
+    if (req.body.humidity) formData.append("humidity", req.body.humidity);
+    if (req.body.rainfall) formData.append("rainfall", req.body.rainfall);
+
+    const response = await fetch(`${ML_BASE}/api/predict/image`, {
+      method: "POST",
+      body: formData,
+      headers: formData.getHeaders(),
+    });
+
+    const mlResult = await response.json();
+
+    if (!mlResult.success) {
+      return res.status(500).json({ success: false, error: mlResult.error || "ML scan failed" });
+    }
+
+    // Save scan result as a Prediction in MongoDB
+    const scanData = mlResult.data;
+    const resultJson = JSON.stringify(scanData);
+
+    const saved = await Prediction.create({
+      cropId: req.body.cropId || null,
+      onChainCropId: 0,
+      predictionType: "ImageScan",
+      result: {
+        score: scanData.health_score,
+        label: scanData.disease_name,
+        details: `Disease scan: ${scanData.disease_name} detected with ${scanData.confidence}% confidence. ` +
+                 `Crop: ${scanData.crop_type}. Health: ${scanData.is_healthy ? "Healthy" : "Diseased"}.`,
+        recommendations: scanData.recommendations || [],
+        metadata: scanData,
+      },
+      confidence: Math.round(scanData.confidence),
+      resultHash: ethers.keccak256(ethers.toUtf8Bytes(resultJson)),
+    });
+
+    res.json({ success: true, data: saved, scanResult: scanData });
+  } catch (error) {
+    console.error("Image scan error:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
