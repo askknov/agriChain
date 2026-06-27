@@ -13,6 +13,7 @@ const predictionSchema = new mongoose.Schema(
         "YieldPrediction",
         "MarketPrice",
         "Recommendation",
+        "ImageScan",
       ],
       required: true,
     },

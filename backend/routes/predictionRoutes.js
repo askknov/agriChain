@@ -157,13 +157,10 @@ router.post("/scan-image", upload.single("image"), async (req, res) => {
 
     const ML_BASE = (process.env.ML_API_URL || "http://localhost:8000/api/predict").replace("/api/predict", "");
 
-    // Build multipart form to send to ML service
-    const FormData = (await import("form-data")).default;
+    // Build multipart form using Node.js native FormData + Blob
     const formData = new FormData();
-    formData.append("image", req.file.buffer, {
-      filename: req.file.originalname,
-      contentType: req.file.mimetype,
-    });
+    const imageBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
+    formData.append("image", imageBlob, req.file.originalname);
 
     // Add optional weather params from request body
     if (req.body.temperature) formData.append("temperature", req.body.temperature);
@@ -173,7 +170,6 @@ router.post("/scan-image", upload.single("image"), async (req, res) => {
     const response = await fetch(`${ML_BASE}/api/predict/image`, {
       method: "POST",
       body: formData,
-      headers: formData.getHeaders(),
     });
 
     const mlResult = await response.json();

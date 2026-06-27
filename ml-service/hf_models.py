@@ -193,7 +193,7 @@ def _download_file(filename):
             if chunk:
                 f.write(chunk)
 
-    print(f"  [HF] ✓ Downloaded {filename} ({os.path.getsize(path) / 1024 / 1024:.1f} MB)")
+    print(f"  [HF] [OK] Downloaded {filename} ({os.path.getsize(path) / 1024 / 1024:.1f} MB)")
     return path
 
 
@@ -212,11 +212,11 @@ def _get_tflite_interpreter():
     """Load or return cached TFLite interpreter."""
     global _tflite_interpreter
     if _tflite_interpreter is None:
-        import tensorflow as tf
+        from ai_edge_litert import interpreter as tfl
         path = _download_file("best_crop_model.tflite")
-        _tflite_interpreter = tf.lite.Interpreter(model_path=path)
+        _tflite_interpreter = tfl.Interpreter(model_path=path)
         _tflite_interpreter.allocate_tensors()
-        print("  [HF] ✓ TFLite crop disease model loaded")
+        print("  [HF] [OK] TFLite crop disease model loaded")
     return _tflite_interpreter
 
 
@@ -226,7 +226,7 @@ def _get_risk_model():
     if _risk_model is None:
         _risk_model = joblib.load(_download_file("disease_risk_model.pkl"))
         _risk_columns = joblib.load(_download_file("disease_risk_columns.pkl"))
-        print("  [HF] ✓ Disease risk model loaded")
+        print("  [HF] [OK] Disease risk model loaded")
     return _risk_model, _risk_columns
 
 
@@ -236,7 +236,7 @@ def _get_yield_model():
     if _yield_model is None:
         _yield_model = joblib.load(_download_file("yield_prediction_model.pkl"))
         _yield_columns = joblib.load(_download_file("yield_prediction_columns.pkl"))
-        print("  [HF] ✓ Yield prediction model loaded")
+        print("  [HF] [OK] Yield prediction model loaded")
     return _yield_model, _yield_columns
 
 
@@ -247,7 +247,7 @@ def _get_price_model():
         _price_model = joblib.load(_download_file("market_price_model_v2.pkl"))
         _price_scaler = joblib.load(_download_file("market_price_scaler.pkl"))
         _price_columns = joblib.load(_download_file("market_price_columns_v2.pkl"))
-        print("  [HF] ✓ Market price model loaded")
+        print("  [HF] [OK] Market price model loaded")
     return _price_model, _price_scaler, _price_columns
 
 
